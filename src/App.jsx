@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
+import "./App.css";
 
 const isElectron = typeof window !== 'undefined' && window.electronAPI;
 
@@ -31,6 +32,23 @@ const FORMAT_OPTIONS = [
 const VIDEO_FORMATS = ["mp4", "mkv", "webm", "avi", "mov"];
 const AUDIO_FORMATS = ["mp3", "m4a", "opus", "flac", "wav"];
 
+const STORAGE_KEY = "ytdlp_settings";
+
+function validateURL(url) {
+  if (!url || !url.trim()) return { valid: false, error: "" };
+
+  try {
+    const urlObj = new URL(url);
+    const validProtocols = ['http:', 'https:'];
+    if (!validProtocols.includes(urlObj.protocol)) {
+      return { valid: false, error: "URL повинен починатися з http:// або https://" };
+    }
+    return { valid: true, error: "" };
+  } catch {
+    return { valid: false, error: "Невалідний URL" };
+  }
+}
+
 function buildCommand(state) {
   const { url, mode, videoQuality, audioQuality, videoFormat, audioFormat, outputPath, subtitles, thumbnail, playlistItems } = state;
   if (!url.trim()) return "";
@@ -59,17 +77,37 @@ function buildCommand(state) {
   return cmd;
 }
 
+function loadSettings() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveSettings(settings) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  } catch (e) {
+    console.error("Failed to save settings:", e);
+  }
+}
+
 export default function App() {
+  const savedSettings = loadSettings();
+
   const [url, setUrl] = useState("");
-  const [mode, setMode] = useState("video_audio");
-  const [videoQuality, setVideoQuality] = useState("1080");
-  const [audioQuality, setAudioQuality] = useState("192");
-  const [videoFormat, setVideoFormat] = useState("mp4");
-  const [audioFormat, setAudioFormat] = useState("mp3");
-  const [subtitles, setSubtitles] = useState(false);
-  const [thumbnail, setThumbnail] = useState(false);
+  const [urlError, setUrlError] = useState("");
+  const [mode, setMode] = useState(savedSettings.mode || "video_audio");
+  const [videoQuality, setVideoQuality] = useState(savedSettings.videoQuality || "1080");
+  const [audioQuality, setAudioQuality] = useState(savedSettings.audioQuality || "192");
+  const [videoFormat, setVideoFormat] = useState(savedSettings.videoFormat || "mp4");
+  const [audioFormat, setAudioFormat] = useState(savedSettings.audioFormat || "mp3");
+  const [subtitles, setSubtitles] = useState(savedSettings.subtitles || false);
+  const [thumbnail, setThumbnail] = useState(savedSettings.thumbnail || false);
   const [playlistItems, setPlaylistItems] = useState("");
-  const [outputPath, setOutputPath] = useState("");
+  const [outputPath, setOutputPath] = useState(savedSettings.outputPath || "");
   const [copied, setCopied] = useState(false);
   const [ytdlpStatus, setYtdlpStatus] = useState(null);
   const [running, setRunning] = useState(false);
@@ -77,7 +115,8 @@ export default function App() {
   const [showOutput, setShowOutput] = useState(false);
 
   const state = { url, mode, videoQuality, audioQuality, videoFormat, audioFormat, subtitles, thumbnail, playlistItems, outputPath };
-  const command = buildCommand(state);
+
+  const command = useMemo(() => buildCommand(state), [url, mode, videoQuality, audioQuality, videoFormat, audioFormat, subtitles, thumbnail, playlistItems, outputPath]);
   const isAudio = mode === "audio_only";
   const isVideoOnly = mode === "video_only";
 
@@ -86,6 +125,22 @@ export default function App() {
       window.electronAPI.checkYtDlp().then(res => setYtdlpStatus(res));
     }
   }, []);
+
+  useEffect(() => {
+    saveSettings({ mode, videoQuality, audioQuality, videoFormat, audioFormat, subtitles, thumbnail, outputPath });
+  }, [mode, videoQuality, audioQuality, videoFormat, audioFormat, subtitles, thumbnail, outputPath]);
+
+  const handleUrlChange = (e) => {
+    const newUrl = e.target.value;
+    setUrl(newUrl);
+
+    if (newUrl.trim()) {
+      const validation = validateURL(newUrl);
+      setUrlError(validation.error);
+    } else {
+      setUrlError("");
+    }
+  };
 
   const copyCommand = () => {
     if (command) {
@@ -97,52 +152,26 @@ export default function App() {
 
   const runDownload = async () => {
     if (!command || !isElectron) return;
+
+    const validation = validateURL(url);
+    if (!validation.valid) {
+      setUrlError(validation.error);
+      return;
+    }
+
     setRunning(true);
     setShowOutput(true);
     setOutput("⏳ Завантаження розпочато...\n");
+
     const result = await window.electronAPI.runCommand(command);
     setOutput(result.output || (result.success ? "✅ Готово!" : "❌ Помилка"));
     setRunning(false);
   };
 
+  const isValidUrl = url.trim() && !urlError;
+
   return (
     <div style={{ minHeight: "100vh", background: "#0C0C0F", fontFamily: "'IBM Plex Mono', monospace", color: "#E8E6E0" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@700&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #111; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-        .pill-btn { background: transparent; border: 1px solid #2A2A30; color: #888; padding: 6px 16px; border-radius: 999px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 12px; transition: all 0.2s; }
-        .pill-btn:hover { border-color: #555; color: #ccc; }
-        .pill-btn.active { background: #E8E6E0; border-color: #E8E6E0; color: #0C0C0F; font-weight: 600; }
-        .quality-chip { background: transparent; border: 1px solid #222; color: #666; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 11px; transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
-        .quality-chip:hover { border-color: #444; color: #aaa; background: #111; }
-        .quality-chip.active { background: #1A1A22; border-color: #5B5BFF; color: #9090FF; }
-        .format-card { background: #0F0F14; border: 1px solid #1E1E28; border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.2s; flex: 1; }
-        .format-card:hover { border-color: #333; }
-        .format-card.active { background: #12121C; border-color: #5B5BFF; box-shadow: 0 0 20px rgba(91,91,255,0.1); }
-        .toggle-switch { width: 40px; height: 22px; background: #1E1E28; border-radius: 11px; position: relative; cursor: pointer; transition: background 0.2s; border: none; flex-shrink: 0; }
-        .toggle-switch.on { background: #5B5BFF; }
-        .toggle-switch::after { content: ''; position: absolute; width: 16px; height: 16px; background: #666; border-radius: 50%; top: 3px; left: 3px; transition: all 0.2s; }
-        .toggle-switch.on::after { transform: translateX(18px); background: #fff; }
-        .url-input { width: 100%; background: #0F0F14; border: 1px solid #1E1E28; color: #E8E6E0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 14px 16px; border-radius: 8px; outline: none; transition: border-color 0.2s; }
-        .url-input:focus { border-color: #5B5BFF; }
-        .url-input::placeholder { color: #333; }
-        .cmd-box { background: #060608; border: 1px solid #1A1A22; border-radius: 8px; padding: 20px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7AFF91; line-height: 1.8; word-break: break-all; min-height: 80px; }
-        .copy-btn { background: #5B5BFF; color: white; border: none; padding: 10px 22px; border-radius: 6px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; transition: all 0.2s; }
-        .copy-btn:hover { background: #7777FF; }
-        .copy-btn:disabled { background: #2A2A30; color: #444; cursor: not-allowed; }
-        .run-btn { background: #1A2A1A; color: #7AFF91; border: 1px solid #2A4A2A; padding: 10px 22px; border-radius: 6px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; transition: all 0.2s; }
-        .run-btn:hover { background: #2A3A2A; }
-        .run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #444; margin-bottom: 10px; }
-        .fmt-pill { background: transparent; border: 1px solid #222; color: #555; padding: 5px 12px; border-radius: 5px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 11px; transition: all 0.15s; }
-        .fmt-pill:hover { border-color: #444; color: #aaa; }
-        .fmt-pill.active { border-color: #5B5BFF; color: #9090FF; background: #0F0F1A; }
-        .titlebar { -webkit-app-region: drag; }
-        .titlebar-btn { -webkit-app-region: no-drag; }
-        .output-box { background: #060608; border: 1px solid #1A2A1A; border-radius: 8px; padding: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7AFF91; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
-      `}</style>
-
       {/* Custom Titlebar (Electron only) */}
       {isElectron && (
         <div className="titlebar" style={{ height: 40, background: "#09090C", borderBottom: "1px solid #111", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", userSelect: "none" }}>
@@ -197,7 +226,14 @@ export default function App() {
         {/* URL */}
         <div style={{ marginBottom: 24 }}>
           <div className="section-label">01 — URL відео або плейлисту</div>
-          <input className="url-input" type="text" placeholder="https://youtube.com/watch?v=..." value={url} onChange={e => setUrl(e.target.value)} />
+          <input
+            className={`url-input ${urlError ? "error" : ""}`}
+            type="text"
+            placeholder="https://youtube.com/watch?v=..."
+            value={url}
+            onChange={handleUrlChange}
+          />
+          {urlError && <div className="error-message">⚠️ {urlError}</div>}
         </div>
 
         {/* Mode */}
@@ -287,9 +323,9 @@ export default function App() {
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <button className="copy-btn" disabled={!command} onClick={copyCommand}>{copied ? "✓ Скопійовано!" : "⎘ Копіювати"}</button>
+          <button className="copy-btn" disabled={!isValidUrl} onClick={copyCommand}>{copied ? "✓ Скопійовано!" : "⎘ Копіювати"}</button>
           {isElectron && (
-            <button className="run-btn" disabled={!command || running || (ytdlpStatus && !ytdlpStatus.installed)} onClick={runDownload}>
+            <button className="run-btn" disabled={!isValidUrl || running || (ytdlpStatus && !ytdlpStatus.installed)} onClick={runDownload}>
               {running ? "⏳ Завантаження..." : "▶ Запустити"}
             </button>
           )}
