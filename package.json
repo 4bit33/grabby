@@ -1,14 +1,14 @@
 {
-  "name": "yt-dlp-builder",
+  "name": "grabby",
   "version": "1.0.0",
   "description": "Modern GUI for yt-dlp with support for 1000+ services",
-  "author": "yt-dlp Builder",
+  "author": "4bit33",
   "license": "MIT",
   "main": "electron/main.js",
   "homepage": "./",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/yt-dlp-builder.git"
+    "url": "https://github.com/4bit33/grabby.git"
   },
   "keywords": [
     "yt-dlp",

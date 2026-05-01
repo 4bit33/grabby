@@ -1,8 +1,8 @@
-# yt-dlp Builder
+# grabby
 
 <div align="center">
 
-![yt-dlp Builder](https://img.shields.io/badge/yt--dlp-Builder-5B5BFF?style=for-the-badge)
+![grabby](https://img.shields.io/badge/grabby-5B5BFF?style=for-the-badge)
 ![Electron](https://img.shields.io/badge/Electron-27-47848F?style=for-the-badge&logo=electron)
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)
 
