@@ -1,0 +1,77 @@
+{
+  "name": "yt-dlp-builder",
+  "version": "1.0.0",
+  "description": "Modern GUI for yt-dlp with support for 1000+ services",
+  "author": "yt-dlp Builder",
+  "license": "MIT",
+  "main": "electron/main.js",
+  "homepage": "./",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/yt-dlp-builder.git"
+  },
+  "keywords": [
+    "yt-dlp",
+    "youtube-dl",
+    "video-downloader",
+    "electron",
+    "react",
+    "youtube",
+    "downloader",
+    "gui"
+  ],
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "electron": "electron .",
+    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "dist-win": "npm run build && electron-builder --win",
+    "dist-mac": "npm run build && electron-builder --mac"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.0",
+    "wait-on": "^7.0.1"
+  },
+  "build": {
+    "appId": "com.ytdlp.builder",
+    "productName": "yt-dlp Builder",
+    "extraMetadata": {
+      "main": "electron/main.js"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "files": [
+      "build/**/*",
+      "electron/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
