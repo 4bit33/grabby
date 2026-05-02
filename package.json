@@ -70,7 +70,8 @@
     ],
     "directories": {
       "output": "dist"
-    }
+    },
+    "electronLanguages": ["en", "uk"]
   },
   "browserslist": {
     "production": [
