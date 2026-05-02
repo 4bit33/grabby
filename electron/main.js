@@ -10,6 +10,7 @@ function getBundledPath(executable) {
   if (isDev) {
     return path.join(__dirname, '..', 'bin', executable);
   }
+  // In production, bin is in resources/bin
   return path.join(process.resourcesPath, 'bin', executable);
 }
 

@@ -56,9 +56,17 @@
     "files": [
       "build/**/*",
       "electron/**/*",
-      "bin/**/*",
-      "node_modules/**/*",
-      "package.json"
+      "package.json",
+      "!node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "bin",
+        "to": "bin"
+      }
+    ],
+    "asarUnpack": [
+      "bin/**/*"
     ],
     "directories": {
       "output": "dist"
