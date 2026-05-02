@@ -1,6 +1,6 @@
 {
   "name": "grabby",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Modern GUI for yt-dlp with support for 1000+ services",
   "author": "4bit33",
   "license": "MIT",
