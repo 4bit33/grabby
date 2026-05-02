@@ -2,6 +2,8 @@
 
 <div align="center">
 
+<img src="public/icon.png" alt="grabby logo" width="128" height="128">
+
 ![grabby](https://img.shields.io/badge/grabby-5B5BFF?style=for-the-badge)
 ![Electron](https://img.shields.io/badge/Electron-27-47848F?style=for-the-badge&logo=electron)
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)
