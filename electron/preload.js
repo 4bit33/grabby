@@ -6,4 +6,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   close: () => ipcRenderer.send('close'),
   runCommand: (cmd) => ipcRenderer.invoke('run-command', cmd),
   checkYtDlp: () => ipcRenderer.invoke('check-ytdlp'),
+  onDownloadProgress: (callback) => {
+    ipcRenderer.on('download-progress', (event, data) => callback(data));
+  },
+  removeDownloadProgressListener: () => {
+    ipcRenderer.removeAllListeners('download-progress');
+  }
 });

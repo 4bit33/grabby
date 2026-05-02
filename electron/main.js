@@ -70,7 +70,7 @@ function createWindow() {
   });
   ipcMain.on('close', () => win.close());
 
-  // Run yt-dlp command
+  // Run yt-dlp command with progress
   ipcMain.handle('run-command', async (event, command) => {
     return new Promise((resolve) => {
       // Replace 'yt-dlp' with bundled path if available
@@ -84,11 +84,39 @@ function createWindow() {
         execOptions.env = { ...process.env, FFMPEG_PATH: ffmpegPath };
       }
 
-      exec(modifiedCommand, execOptions, (error, stdout, stderr) => {
-        if (error) {
-          resolve({ success: false, output: stderr || error.message });
+      const child = exec(modifiedCommand, execOptions);
+      let output = '';
+
+      child.stdout.on('data', (data) => {
+        output += data;
+        const str = data.toString();
+
+        // Parse progress from yt-dlp output
+        // Format: [download]  45.2% of 123.45MiB at 1.23MiB/s ETA 00:12
+        const progressMatch = str.match(/\[download\]\s+(\d+\.?\d*)%/);
+        const sizeMatch = str.match(/of\s+([\d.]+\s*[KMG]iB)/);
+        const speedMatch = str.match(/at\s+([\d.]+\s*[KMG]iB\/s)/);
+        const etaMatch = str.match(/ETA\s+(\d+:\d+)/);
+
+        if (progressMatch) {
+          event.sender.send('download-progress', {
+            percent: parseFloat(progressMatch[1]),
+            size: sizeMatch ? sizeMatch[1] : null,
+            speed: speedMatch ? speedMatch[1] : null,
+            eta: etaMatch ? etaMatch[1] : null
+          });
+        }
+      });
+
+      child.stderr.on('data', (data) => {
+        output += data;
+      });
+
+      child.on('close', (code) => {
+        if (code !== 0) {
+          resolve({ success: false, output });
         } else {
-          resolve({ success: true, output: stdout });
+          resolve({ success: true, output });
         }
       });
     });

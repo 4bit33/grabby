@@ -6,6 +6,58 @@
   padding: 0;
 }
 
+/* Keyframe animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -51,23 +103,31 @@
   border-radius: 6px;
   cursor: pointer;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  transition: all 0.15s;
+  font-size: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   gap: 6px;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .quality-chip:hover {
   border-color: #555;
   color: #ccc;
   background: #1A1A1A;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.quality-chip:active {
+  transform: translateY(0);
 }
 
 .quality-chip.active {
   background: #1A1A22;
   border-color: #5B5BFF;
   color: #9090FF;
+  box-shadow: 0 0 20px rgba(91, 91, 255, 0.2);
 }
 
 .format-card {
@@ -76,18 +136,26 @@
   border-radius: 10px;
   padding: 16px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex: 1;
+  animation: scaleIn 0.3s ease-out;
 }
 
 .format-card:hover {
   border-color: #444;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.format-card:active {
+  transform: translateY(-2px);
 }
 
 .format-card.active {
   background: #12121C;
   border-color: #5B5BFF;
-  box-shadow: 0 0 20px rgba(91, 91, 255, 0.1);
+  box-shadow: 0 0 30px rgba(91, 91, 255, 0.15);
+  transform: translateY(-2px);
 }
 
 .toggle-switch {
@@ -97,13 +165,18 @@
   border-radius: 11px;
   position: relative;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
   flex-shrink: 0;
 }
 
+.toggle-switch:hover {
+  background: #252530;
+}
+
 .toggle-switch.on {
   background: #5B5BFF;
+  box-shadow: 0 0 15px rgba(91, 91, 255, 0.3);
 }
 
 .toggle-switch::after {
@@ -115,12 +188,14 @@
   border-radius: 50%;
   top: 3px;
   left: 3px;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .toggle-switch.on::after {
   transform: translateX(18px);
   background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .url-input {
@@ -129,15 +204,18 @@
   border: 1px solid #1E1E28;
   color: #E8E6E0;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 14px;
   padding: 14px 16px;
   border-radius: 8px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeIn 0.3s ease-out;
 }
 
 .url-input:focus {
   border-color: #5B5BFF;
+  box-shadow: 0 0 0 3px rgba(91, 91, 255, 0.1);
+  transform: translateY(-1px);
 }
 
 .url-input::placeholder {
@@ -146,6 +224,13 @@
 
 .url-input.error {
   border-color: #FF5555;
+  animation: shake 0.4s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }
 
 .cmd-box {
@@ -154,7 +239,7 @@
   border-radius: 8px;
   padding: 20px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
+  font-size: 13px;
   color: #7AFF91;
   line-height: 1.8;
   word-break: break-all;
@@ -169,19 +254,47 @@
   border-radius: 6px;
   cursor: pointer;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.copy-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.copy-btn:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .copy-btn:hover {
   background: #7777FF;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(91, 91, 255, 0.4);
+}
+
+.copy-btn:active {
+  transform: translateY(0);
 }
 
 .copy-btn:disabled {
   background: #2A2A30;
   color: #444;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .run-btn {
@@ -192,22 +305,50 @@
   border-radius: 6px;
   cursor: pointer;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.run-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(122, 255, 145, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.run-btn:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .run-btn:hover {
   background: #2A3A2A;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(122, 255, 145, 0.3);
+}
+
+.run-btn:active {
+  transform: translateY(0);
 }
 
 .run-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .section-label {
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 2px;
   color: #666;
@@ -222,19 +363,27 @@
   border-radius: 5px;
   cursor: pointer;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  transition: all 0.15s;
+  font-size: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeIn 0.3s ease-out;
 }
 
 .fmt-pill:hover {
   border-color: #555;
   color: #bbb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.fmt-pill:active {
+  transform: translateY(0);
 }
 
 .fmt-pill.active {
   border-color: #5B5BFF;
   color: #9090FF;
   background: #0F0F1A;
+  box-shadow: 0 0 15px rgba(91, 91, 255, 0.2);
 }
 
 .titlebar {
@@ -251,7 +400,7 @@
   border-radius: 8px;
   padding: 16px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: 12px;
   color: #7AFF91;
   max-height: 300px;
   overflow-y: auto;
@@ -270,6 +419,53 @@
   border-radius: 6px;
   padding: 8px 12px;
   margin-top: 8px;
-  font-size: 11px;
+  font-size: 12px;
   color: #FF8888;
+}
+
+.mode-toggle {
+  background: transparent;
+  border: 1px solid #2A2A30;
+  color: #888;
+  padding: 8px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
+}
+
+.mode-toggle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(91, 91, 255, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.mode-toggle:hover::before {
+  width: 200px;
+  height: 200px;
+}
+
+.mode-toggle:hover {
+  border-color: #555;
+  color: #ccc;
+  transform: translateY(-1px);
+}
+
+.mode-toggle.active {
+  background: #5B5BFF;
+  border-color: #5B5BFF;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(91, 91, 255, 0.3);
 }
