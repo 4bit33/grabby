@@ -9,6 +9,9 @@ dist/
 *.dmg
 *.AppImage
 
+# Bundled executables (too large for git)
+bin/
+
 # OS files
 .DS_Store
 Thumbs.db

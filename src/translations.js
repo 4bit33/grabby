@@ -5,6 +5,7 @@ export const translations = {
     appSubtitle: "COMMAND GENERATOR · 1000+ SERVICES",
     ytdlpInstalled: "yt-dlp",
     ytdlpNotInstalled: "yt-dlp not installed",
+    ytdlpBundled: "yt-dlp (bundled)",
 
     // Warning
     warningNotInstalled: "⚠️ yt-dlp not found. Install it:",
@@ -81,6 +82,7 @@ export const translations = {
     appSubtitle: "ГЕНЕРАТОР КОМАНД · 1000+ СЕРВІСІВ",
     ytdlpInstalled: "yt-dlp",
     ytdlpNotInstalled: "yt-dlp не встановлено",
+    ytdlpBundled: "yt-dlp (вбудований)",
 
     // Warning
     warningNotInstalled: "⚠️ yt-dlp не знайдено. Встанови його:",

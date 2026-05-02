@@ -1,8 +1,35 @@
 const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
+const fs = require('fs');
 
 const isDev = !app.isPackaged;
+
+// Get bundled executables paths
+function getBundledPath(executable) {
+  if (isDev) {
+    return path.join(__dirname, '..', 'bin', executable);
+  }
+  return path.join(process.resourcesPath, 'bin', executable);
+}
+
+// Check if bundled yt-dlp exists, otherwise use system version
+function getYtDlpPath() {
+  const bundledPath = getBundledPath('yt-dlp.exe');
+  if (fs.existsSync(bundledPath)) {
+    return `"${bundledPath}"`;
+  }
+  return 'yt-dlp'; // fallback to system version
+}
+
+// Check if bundled ffmpeg exists
+function getFfmpegPath() {
+  const bundledPath = getBundledPath('ffmpeg.exe');
+  if (fs.existsSync(bundledPath)) {
+    return `"${bundledPath}"`;
+  }
+  return null;
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -45,7 +72,18 @@ function createWindow() {
   // Run yt-dlp command
   ipcMain.handle('run-command', async (event, command) => {
     return new Promise((resolve) => {
-      exec(command, { timeout: 0 }, (error, stdout, stderr) => {
+      // Replace 'yt-dlp' with bundled path if available
+      const ytdlpPath = getYtDlpPath();
+      const modifiedCommand = command.replace(/^yt-dlp\b/, ytdlpPath);
+
+      // Add ffmpeg path if bundled version exists
+      const ffmpegPath = getFfmpegPath();
+      const execOptions = { timeout: 0 };
+      if (ffmpegPath) {
+        execOptions.env = { ...process.env, FFMPEG_PATH: ffmpegPath };
+      }
+
+      exec(modifiedCommand, execOptions, (error, stdout, stderr) => {
         if (error) {
           resolve({ success: false, output: stderr || error.message });
         } else {
@@ -58,8 +96,15 @@ function createWindow() {
   // Check if yt-dlp is installed
   ipcMain.handle('check-ytdlp', async () => {
     return new Promise((resolve) => {
-      exec('yt-dlp --version', (error, stdout) => {
-        resolve({ installed: !error, version: stdout.trim() });
+      const ytdlpPath = getYtDlpPath();
+      exec(`${ytdlpPath} --version`, (error, stdout) => {
+        const bundledPath = getBundledPath('yt-dlp.exe');
+        const isBundled = fs.existsSync(bundledPath);
+        resolve({
+          installed: !error,
+          version: stdout.trim(),
+          bundled: isBundled
+        });
       });
     });
   });

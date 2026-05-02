@@ -237,7 +237,7 @@ export default function App() {
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: ytdlpStatus.installed ? "#7AFF91" : "#FF5555" }} />
               <span style={{ fontSize: 11, color: ytdlpStatus.installed ? "#7AFF91" : "#FF5555" }}>
-                {ytdlpStatus.installed ? `${t.ytdlpInstalled} ${ytdlpStatus.version}` : t.ytdlpNotInstalled}
+                {ytdlpStatus.installed ? `${ytdlpStatus.bundled ? t.ytdlpBundled : t.ytdlpInstalled} ${ytdlpStatus.version}` : t.ytdlpNotInstalled}
               </span>
             </div>
           )}
