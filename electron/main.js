@@ -18,7 +18,7 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
     },
-    icon: path.join(__dirname, '../public/icon.ico'),
+    icon: path.join(__dirname, '../public/icon.png'),
   });
 
   if (isDev) {

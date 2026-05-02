@@ -40,13 +40,14 @@
     "wait-on": "^7.0.1"
   },
   "build": {
-    "appId": "com.ytdlp.builder",
-    "productName": "yt-dlp Builder",
+    "appId": "com.grabby.app",
+    "productName": "grabby",
     "extraMetadata": {
       "main": "electron/main.js"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "public/icon.png"
     },
     "nsis": {
       "oneClick": false,

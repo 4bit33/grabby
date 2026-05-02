@@ -1,17 +1,20 @@
 import { useState, useEffect, useMemo } from "react";
 import "./App.css";
+import { translations } from "./translations";
 
 const isElectron = typeof window !== 'undefined' && window.electronAPI;
 
+const STORAGE_KEY = "grabby_settings";
+
 const QUALITY_OPTIONS = {
   video: [
-    { value: "2160", label: "4K / 2160p", icon: "◈" },
-    { value: "1440", label: "1440p QHD", icon: "◇" },
-    { value: "1080", label: "1080p FHD", icon: "◆" },
-    { value: "720", label: "720p HD", icon: "▸" },
-    { value: "480", label: "480p SD", icon: "▹" },
-    { value: "360", label: "360p", icon: "▫" },
-    { value: "best", label: "Найкраща", icon: "★" },
+    { value: "2160", labelKey: "quality4K", icon: "◈" },
+    { value: "1440", labelKey: "quality1440p", icon: "◇" },
+    { value: "1080", labelKey: "quality1080p", icon: "◆" },
+    { value: "720", labelKey: "quality720p", icon: "▸" },
+    { value: "480", labelKey: "quality480p", icon: "▹" },
+    { value: "360", labelKey: "quality360p", icon: "▫" },
+    { value: "best", labelKey: "qualityBest", icon: "★" },
   ],
   audio: [
     { value: "320", label: "320 kbps", icon: "◈" },
@@ -19,33 +22,31 @@ const QUALITY_OPTIONS = {
     { value: "192", label: "192 kbps", icon: "◆" },
     { value: "128", label: "128 kbps", icon: "▸" },
     { value: "96", label: "96 kbps", icon: "▹" },
-    { value: "best", label: "Найкраща", icon: "★" },
+    { value: "best", labelKey: "qualityBest", icon: "★" },
   ],
 };
 
 const FORMAT_OPTIONS = [
-  { id: "video_audio", label: "Відео + Звук", desc: "Повне відео з аудіо" },
-  { id: "video_only", label: "Тільки відео", desc: "Відео без звуку" },
-  { id: "audio_only", label: "Тільки аудіо", desc: "Музика або подкаст" },
+  { id: "video_audio", labelKey: "formatVideoAudio", descKey: "formatVideoAudioDesc" },
+  { id: "video_only", labelKey: "formatVideoOnly", descKey: "formatVideoOnlyDesc" },
+  { id: "audio_only", labelKey: "formatAudioOnly", descKey: "formatAudioOnlyDesc" },
 ];
 
 const VIDEO_FORMATS = ["mp4", "mkv", "webm", "avi", "mov"];
 const AUDIO_FORMATS = ["mp3", "m4a", "opus", "flac", "wav"];
 
-const STORAGE_KEY = "ytdlp_settings";
-
-function validateURL(url) {
+function validateURL(url, t) {
   if (!url || !url.trim()) return { valid: false, error: "" };
 
   try {
     const urlObj = new URL(url);
     const validProtocols = ['http:', 'https:'];
     if (!validProtocols.includes(urlObj.protocol)) {
-      return { valid: false, error: "URL повинен починатися з http:// або https://" };
+      return { valid: false, error: t.errorInvalidProtocol };
     }
     return { valid: true, error: "" };
   } catch {
-    return { valid: false, error: "Невалідний URL" };
+    return { valid: false, error: t.errorInvalidUrl };
   }
 }
 
@@ -97,6 +98,9 @@ function saveSettings(settings) {
 export default function App() {
   const savedSettings = loadSettings();
 
+  const [language, setLanguage] = useState(savedSettings.language || "uk");
+  const t = translations[language];
+
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState("");
   const [mode, setMode] = useState(savedSettings.mode || "video_audio");
@@ -127,15 +131,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    saveSettings({ mode, videoQuality, audioQuality, videoFormat, audioFormat, subtitles, thumbnail, outputPath });
-  }, [mode, videoQuality, audioQuality, videoFormat, audioFormat, subtitles, thumbnail, outputPath]);
+    saveSettings({ language, mode, videoQuality, audioQuality, videoFormat, audioFormat, subtitles, thumbnail, outputPath });
+  }, [language, mode, videoQuality, audioQuality, videoFormat, audioFormat, subtitles, thumbnail, outputPath]);
 
   const handleUrlChange = (e) => {
     const newUrl = e.target.value;
     setUrl(newUrl);
 
     if (newUrl.trim()) {
-      const validation = validateURL(newUrl);
+      const validation = validateURL(newUrl, t);
       setUrlError(validation.error);
     } else {
       setUrlError("");
@@ -153,7 +157,7 @@ export default function App() {
   const runDownload = async () => {
     if (!command || !isElectron) return;
 
-    const validation = validateURL(url);
+    const validation = validateURL(url, t);
     if (!validation.valid) {
       setUrlError(validation.error);
       return;
@@ -161,10 +165,10 @@ export default function App() {
 
     setRunning(true);
     setShowOutput(true);
-    setOutput("⏳ Завантаження розпочато...\n");
+    setOutput(t.outputStarted);
 
     const result = await window.electronAPI.runCommand(command);
-    setOutput(result.output || (result.success ? "✅ Готово!" : "❌ Помилка"));
+    setOutput(result.output || (result.success ? t.outputSuccess : t.outputError));
     setRunning(false);
   };
 
@@ -177,7 +181,7 @@ export default function App() {
         <div className="titlebar" style={{ height: 40, background: "#09090C", borderBottom: "1px solid #111", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", userSelect: "none" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 24, height: 24, background: "#5B5BFF", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>↓</div>
-            <span style={{ fontSize: 12, color: "#555", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }}>yt-dlp Builder</span>
+            <span style={{ fontSize: 12, color: "#555", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }}>{t.appName}</span>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             {[
@@ -200,18 +204,44 @@ export default function App() {
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           {!isElectron && <div style={{ width: 36, height: 36, background: "#5B5BFF", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>↓</div>}
           <div>
-            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, letterSpacing: "-0.5px" }}>yt-dlp <span style={{ color: "#5B5BFF" }}>Builder</span></div>
-            <div style={{ fontSize: 10, color: "#333", letterSpacing: "1px" }}>COMMAND GENERATOR · 1000+ СЕРВІСІВ</div>
+            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, letterSpacing: "-0.5px", color: "#5B5BFF" }}>{t.appName}</div>
+            <div style={{ fontSize: 10, color: "#666", letterSpacing: "1px" }}>{t.appSubtitle}</div>
           </div>
         </div>
-        {isElectron && ytdlpStatus && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: ytdlpStatus.installed ? "#7AFF91" : "#FF5555" }} />
-            <span style={{ fontSize: 11, color: ytdlpStatus.installed ? "#7AFF91" : "#FF5555" }}>
-              {ytdlpStatus.installed ? `yt-dlp ${ytdlpStatus.version}` : "yt-dlp не встановлено"}
-            </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          {/* Language Switcher */}
+          <div style={{ display: "flex", gap: 4, background: "#0F0F14", border: "1px solid #1E1E28", borderRadius: 6, padding: 4 }}>
+            {["uk", "en"].map(lang => (
+              <button
+                key={lang}
+                onClick={() => setLanguage(lang)}
+                style={{
+                  background: language === lang ? "#5B5BFF" : "transparent",
+                  color: language === lang ? "#fff" : "#888",
+                  border: "none",
+                  padding: "4px 10px",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  fontSize: 10,
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontWeight: 600,
+                  transition: "all 0.2s",
+                  textTransform: "uppercase"
+                }}
+              >
+                {lang}
+              </button>
+            ))}
           </div>
-        )}
+          {isElectron && ytdlpStatus && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: ytdlpStatus.installed ? "#7AFF91" : "#FF5555" }} />
+              <span style={{ fontSize: 11, color: ytdlpStatus.installed ? "#7AFF91" : "#FF5555" }}>
+                {ytdlpStatus.installed ? `${t.ytdlpInstalled} ${ytdlpStatus.version}` : t.ytdlpNotInstalled}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px" }}>
@@ -219,17 +249,17 @@ export default function App() {
         {/* yt-dlp not installed warning */}
         {isElectron && ytdlpStatus && !ytdlpStatus.installed && (
           <div style={{ background: "#1A0F0F", border: "1px solid #5A2020", borderRadius: 8, padding: "12px 16px", marginBottom: 20, fontSize: 12, color: "#FF8888" }}>
-            ⚠️ yt-dlp не знайдено. Встанови його: <code style={{ background: "#2A1010", padding: "2px 6px", borderRadius: 4 }}>winget install yt-dlp</code> або <code style={{ background: "#2A1010", padding: "2px 6px", borderRadius: 4 }}>pip install yt-dlp</code>
+            {t.warningNotInstalled} <code style={{ background: "#2A1010", padding: "2px 6px", borderRadius: 4 }}>winget install yt-dlp</code> {language === "uk" ? "або" : "or"} <code style={{ background: "#2A1010", padding: "2px 6px", borderRadius: 4 }}>pip install yt-dlp</code>
           </div>
         )}
 
         {/* URL */}
         <div style={{ marginBottom: 24 }}>
-          <div className="section-label">01 — URL відео або плейлисту</div>
+          <div className="section-label">{t.section01}</div>
           <input
             className={`url-input ${urlError ? "error" : ""}`}
             type="text"
-            placeholder="https://youtube.com/watch?v=..."
+            placeholder={t.urlPlaceholder}
             value={url}
             onChange={handleUrlChange}
           />
@@ -238,12 +268,12 @@ export default function App() {
 
         {/* Mode */}
         <div style={{ marginBottom: 24 }}>
-          <div className="section-label">02 — Що завантажити</div>
+          <div className="section-label">{t.section02}</div>
           <div style={{ display: "flex", gap: 10 }}>
             {FORMAT_OPTIONS.map(f => (
               <div key={f.id} className={`format-card ${mode === f.id ? "active" : ""}`} onClick={() => setMode(f.id)}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: mode === f.id ? "#9090FF" : "#666", marginBottom: 4 }}>{f.label}</div>
-                <div style={{ fontSize: 10, color: "#333" }}>{f.desc}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: mode === f.id ? "#9090FF" : "#666", marginBottom: 4 }}>{t[f.labelKey]}</div>
+                <div style={{ fontSize: 10, color: "#666" }}>{t[f.descKey]}</div>
               </div>
             ))}
           </div>
@@ -253,15 +283,15 @@ export default function App() {
         <div style={{ display: "grid", gridTemplateColumns: isAudio || isVideoOnly ? "1fr" : "1fr 1fr", gap: 20, marginBottom: 24 }}>
           {!isAudio && (
             <div>
-              <div className="section-label">03 — Якість відео</div>
+              <div className="section-label">{t.section03Video}</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
                 {QUALITY_OPTIONS.video.map(q => (
                   <button key={q.value} className={`quality-chip ${videoQuality === q.value ? "active" : ""}`} onClick={() => setVideoQuality(q.value)}>
-                    <span>{q.icon}</span> {q.label}
+                    <span>{q.icon}</span> {q.labelKey ? t[q.labelKey] : q.label}
                   </button>
                 ))}
               </div>
-              <div style={{ fontSize: 10, color: "#333", marginBottom: 6, letterSpacing: "1px" }}>ФОРМАТ</div>
+              <div style={{ fontSize: 10, color: "#777", marginBottom: 6, letterSpacing: "1px" }}>{t.formatLabel}</div>
               <div style={{ display: "flex", gap: 6 }}>
                 {VIDEO_FORMATS.map(f => <button key={f} className={`fmt-pill ${videoFormat === f ? "active" : ""}`} onClick={() => setVideoFormat(f)}>{f}</button>)}
               </div>
@@ -269,15 +299,15 @@ export default function App() {
           )}
           {!isVideoOnly && (
             <div>
-              <div className="section-label">{isAudio ? "03" : "04"} — Якість аудіо</div>
+              <div className="section-label">{isAudio ? t.section03Audio : t.section04Audio}</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
                 {QUALITY_OPTIONS.audio.map(q => (
                   <button key={q.value} className={`quality-chip ${audioQuality === q.value ? "active" : ""}`} onClick={() => setAudioQuality(q.value)}>
-                    <span>{q.icon}</span> {q.label}
+                    <span>{q.icon}</span> {q.labelKey ? t[q.labelKey] : q.label}
                   </button>
                 ))}
               </div>
-              <div style={{ fontSize: 10, color: "#333", marginBottom: 6, letterSpacing: "1px" }}>ФОРМАТ</div>
+              <div style={{ fontSize: 10, color: "#777", marginBottom: 6, letterSpacing: "1px" }}>{t.formatLabel}</div>
               <div style={{ display: "flex", gap: 6 }}>
                 {AUDIO_FORMATS.map(f => <button key={f} className={`fmt-pill ${audioFormat === f ? "active" : ""}`} onClick={() => setAudioFormat(f)}>{f}</button>)}
               </div>
@@ -287,27 +317,27 @@ export default function App() {
 
         {/* Advanced */}
         <div style={{ marginBottom: 24 }}>
-          <div className="section-label">05 — Додаткові параметри</div>
+          <div className="section-label">{t.section05}</div>
           <div style={{ background: "#0F0F14", border: "1px solid #1E1E28", borderRadius: 10, padding: "14px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
             {[
-              { label: "Субтитри", desc: "Завантажити (uk, en)", val: subtitles, set: setSubtitles },
-              { label: "Вбудувати обкладинку", desc: "Додати thumbnail", val: thumbnail, set: setThumbnail },
+              { label: t.optionSubtitles, desc: t.optionSubtitlesDesc, val: subtitles, set: setSubtitles },
+              { label: t.optionThumbnail, desc: t.optionThumbnailDesc, val: thumbnail, set: setThumbnail },
             ].map((item, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", ...(i > 0 ? { borderTop: "1px solid #111", paddingTop: 12 } : {}) }}>
                 <div>
                   <div style={{ fontSize: 13, color: "#aaa" }}>{item.label}</div>
-                  <div style={{ fontSize: 10, color: "#333" }}>{item.desc}</div>
+                  <div style={{ fontSize: 10, color: "#666" }}>{item.desc}</div>
                 </div>
                 <button className={`toggle-switch ${item.val ? "on" : ""}`} onClick={() => item.set(!item.val)} />
               </div>
             ))}
             <div style={{ borderTop: "1px solid #111", paddingTop: 12 }}>
-              <div style={{ fontSize: 12, color: "#aaa", marginBottom: 8 }}>Елементи плейлисту</div>
-              <input className="url-input" style={{ fontSize: 11 }} placeholder="напр: 1-10 або 1,3,5" value={playlistItems} onChange={e => setPlaylistItems(e.target.value)} />
+              <div style={{ fontSize: 12, color: "#aaa", marginBottom: 8 }}>{t.optionPlaylistItems}</div>
+              <input className="url-input" style={{ fontSize: 11 }} placeholder={t.playlistPlaceholder} value={playlistItems} onChange={e => setPlaylistItems(e.target.value)} />
             </div>
             <div style={{ borderTop: "1px solid #111", paddingTop: 12 }}>
-              <div style={{ fontSize: 12, color: "#aaa", marginBottom: 8 }}>Папка збереження</div>
-              <input className="url-input" style={{ fontSize: 11 }} placeholder={isElectron ? "C:\\Users\\name\\Downloads" : "~/Downloads"} value={outputPath} onChange={e => setOutputPath(e.target.value)} />
+              <div style={{ fontSize: 12, color: "#aaa", marginBottom: 8 }}>{t.optionOutputPath}</div>
+              <input className="url-input" style={{ fontSize: 11 }} placeholder={t.outputPathPlaceholder} value={outputPath} onChange={e => setOutputPath(e.target.value)} />
             </div>
           </div>
         </div>
@@ -315,18 +345,18 @@ export default function App() {
         {/* Command */}
         <div style={{ marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <div className="section-label" style={{ margin: 0 }}>→ Згенерована команда</div>
+            <div className="section-label" style={{ margin: 0 }}>{t.sectionCommand}</div>
           </div>
           <div className="cmd-box">
-            {command ? <><span style={{ color: "#444" }}>$ </span><span>{command}</span></> : <span style={{ color: "#222" }}>// Введи URL щоб отримати команду...</span>}
+            {command ? <><span style={{ color: "#444" }}>$ </span><span>{command}</span></> : <span style={{ color: "#222" }}>{t.commandPlaceholder}</span>}
           </div>
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <button className="copy-btn" disabled={!isValidUrl} onClick={copyCommand}>{copied ? "✓ Скопійовано!" : "⎘ Копіювати"}</button>
+          <button className="copy-btn" disabled={!isValidUrl} onClick={copyCommand}>{copied ? t.btnCopied : t.btnCopy}</button>
           {isElectron && (
             <button className="run-btn" disabled={!isValidUrl || running || (ytdlpStatus && !ytdlpStatus.installed)} onClick={runDownload}>
-              {running ? "⏳ Завантаження..." : "▶ Запустити"}
+              {running ? t.btnRunning : t.btnRun}
             </button>
           )}
         </div>
@@ -334,14 +364,14 @@ export default function App() {
         {/* Output */}
         {showOutput && (
           <div style={{ marginTop: 16 }}>
-            <div className="section-label">Вивід терміналу</div>
+            <div className="section-label">{t.sectionOutput}</div>
             <div className="output-box">{output}</div>
           </div>
         )}
 
         {/* Install hint */}
         <div style={{ marginTop: 28, background: "#09090C", border: "1px solid #111", borderRadius: 10, padding: "14px 18px" }}>
-          <div className="section-label">Як встановити yt-dlp</div>
+          <div className="section-label">{t.sectionInstall}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {[
               { os: "Windows", cmd: "winget install yt-dlp" },
