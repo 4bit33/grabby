@@ -253,10 +253,15 @@
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   color: #7AFF91;
-  max-height: 200px;
+  max-height: 300px;
   overflow-y: auto;
   white-space: pre-wrap;
-  word-break: break-all;
+  word-break: break-word;
+}
+
+.output-box.error {
+  border-color: #5A2020;
+  background: #0A0606;
 }
 
 .error-message {

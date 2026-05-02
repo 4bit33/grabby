@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import "./App.css";
 import { translations } from "./translations";
+import { parseError } from "./errorParser";
 
 const isElectron = typeof window !== 'undefined' && window.electronAPI;
 
@@ -168,7 +169,20 @@ export default function App() {
     setOutput(t.outputStarted);
 
     const result = await window.electronAPI.runCommand(command);
-    setOutput(result.output || (result.success ? t.outputSuccess : t.outputError));
+
+    if (!result.success && result.output) {
+      // Parse error and show user-friendly message
+      const parsedError = parseError(result.output, language);
+
+      if (parsedError.found) {
+        setOutput(`❌ ${parsedError.title}\n\n${parsedError.message}\n\n💡 ${parsedError.solution}\n\n--- Original Error ---\n${parsedError.original}`);
+      } else {
+        setOutput(result.output || t.outputError);
+      }
+    } else {
+      setOutput(result.output || (result.success ? t.outputSuccess : t.outputError));
+    }
+
     setRunning(false);
   };
 
@@ -365,7 +379,7 @@ export default function App() {
         {showOutput && (
           <div style={{ marginTop: 16 }}>
             <div className="section-label">{t.sectionOutput}</div>
-            <div className="output-box">{output}</div>
+            <div className={`output-box ${output.includes('❌') ? 'error' : ''}`}>{output}</div>
           </div>
         )}
 
