@@ -56,6 +56,9 @@ export const translations = {
     btnCopied: "✓ Copied!",
     btnRun: "▶ Run",
     btnRunning: "⏳ Downloading...",
+    btnStartBatch: "▶ Start Download",
+    btnClearCompleted: "🗑️ Clear Completed",
+    electronOnlyButton: "▶ Electron only",
 
     // Command box
     commandPlaceholder: "// Enter URL to get command...",
@@ -68,6 +71,10 @@ export const translations = {
     // Errors
     errorInvalidUrl: "Invalid URL",
     errorInvalidProtocol: "URL must start with http:// or https://",
+    errorInvalidTrimStart: "❌ Invalid start time format.",
+    errorInvalidTrimEnd: "❌ Invalid end time format.",
+    errorTrimEndBeforeStart: "❌ End time must be greater than start time.",
+    electronOnlyMessage: "Downloading is only available in the Electron version of the app.",
 
     // Format labels
     formatLabel: "FORMAT",
@@ -133,6 +140,9 @@ export const translations = {
     btnCopied: "✓ Скопійовано!",
     btnRun: "▶ Запустити",
     btnRunning: "⏳ Завантаження...",
+    btnStartBatch: "▶ Почати завантаження",
+    btnClearCompleted: "🗑️ Очистити завершені",
+    electronOnlyButton: "▶ Electron тільки",
 
     // Command box
     commandPlaceholder: "// Введи URL щоб отримати команду...",
@@ -145,6 +155,10 @@ export const translations = {
     // Errors
     errorInvalidUrl: "Невалідний URL",
     errorInvalidProtocol: "URL повинен починатися з http:// або https://",
+    errorInvalidTrimStart: "❌ Неправильний формат початку обрізки.",
+    errorInvalidTrimEnd: "❌ Неправильний формат кінця обрізки.",
+    errorTrimEndBeforeStart: "❌ Час кінця має бути більший за час початку.",
+    electronOnlyMessage: "Завантаження доступне тільки у Electron-версії програми.",
 
     // Format labels
     formatLabel: "ФОРМАТ",
