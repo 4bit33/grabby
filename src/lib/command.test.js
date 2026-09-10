@@ -53,6 +53,21 @@ describe('buildYtDlpCommand', () => {
     expect(cmd.args).toContain('-x');
     expect(cmd.args).toContain('128k');
   });
+  test('audio_only embeds metadata + cover', () => {
+    const cmd = buildYtDlpCommand({ url: 'https://x/y', mode: 'audio_only', audioFormat: 'mp3', audioQuality: 'best' });
+    expect(cmd.args).toContain('--embed-metadata');
+    expect(cmd.args).toContain('--embed-thumbnail');
+    expect(cmd.args).toContain('jpg');
+  });
+  test('wav skips auto-cover (cannot embed)', () => {
+    const cmd = buildYtDlpCommand({ url: 'https://x/y', mode: 'audio_only', audioFormat: 'wav' });
+    expect(cmd.args).toContain('--embed-metadata');
+    expect(cmd.args).not.toContain('--embed-thumbnail');
+  });
+  test('video embeds metadata', () => {
+    const cmd = buildYtDlpCommand({ url: 'https://x/y', mode: 'video_audio' });
+    expect(cmd.args).toContain('--embed-metadata');
+  });
   test('does not interpolate user input into shell string', () => {
     const evil = 'https://x/y"; rm -rf /; echo "';
     const cmd = buildYtDlpCommand({ url: evil, mode: 'video_audio' });

@@ -10,6 +10,14 @@ import {
   parseTimecode as parseTimecodeLib,
   isAudioOutputFormat as isAudioOutputFormatLib,
 } from "./lib/command";
+import {
+  QUEUE_STORAGE_KEY,
+  QUEUE_OUTPUT_MAX,
+  createQueueItem,
+  loadQueueFromJson,
+  serializeQueue,
+  truncateQueueOutput,
+} from "./lib/queue";
 
 function getIsElectron() {
   if (typeof window !== 'undefined' && window.electronAPI) return true;
@@ -116,11 +124,24 @@ export default function App() {
   const [output, setOutput] = useState("");
   const [showOutput, setShowOutput] = useState(false);
 
-  // Batch download state
+  // Batch download state (H4: persistent queue — downloading resets to pending on load)
   const [batchMode, setBatchMode] = useState(false);
   const [batchUrls, setBatchUrls] = useState("");
-  const [queue, setQueue] = useState([]);
+  const [queue, setQueue] = useState(() => {
+    try {
+      return loadQueueFromJson(localStorage.getItem(QUEUE_STORAGE_KEY));
+    } catch {
+      return [];
+    }
+  });
   const [currentDownload, setCurrentDownload] = useState(null);
+
+  // H4: persist queue (truncate outputs, cap items — see lib/queue)
+  useEffect(() => {
+    try {
+      localStorage.setItem(QUEUE_STORAGE_KEY, serializeQueue(queue));
+    } catch {}
+  }, [queue]);
 
   // Progress state
   const [progress, setProgress] = useState({
@@ -166,6 +187,7 @@ export default function App() {
 
   // Phase 1 C2/C4: stable refs to avoid stale closures in single progress listener
   const activeRequestIdRef = useRef(null);
+  const requestIdToItemIdRef = useRef(new Map()); // H4: requestId -> queue item id for per-item progress
   const activeTabRef = useRef(activeTab);
   const videoDurationRef = useRef(videoDuration);
   const outputBoxRef = useRef(null);
@@ -207,7 +229,10 @@ export default function App() {
         if (data.requestId !== activeRequestIdRef.current) return;
       }
       if (kind === 'ffmpeg') {
-        if (data.time && videoDurationRef.current > 0) {
+        // C5: prefer real percent computed in main (Duration + time=). Fallback to preview duration.
+        if (typeof data.percent === 'number' && Number.isFinite(data.percent) && data.percent > 0) {
+          setConverterProgress(Math.min(100, Math.max(0, data.percent)));
+        } else if (data.time && videoDurationRef.current > 0) {
           const [h, m, s] = String(data.time).split(':').map(parseFloat);
           if (Number.isFinite(h) && Number.isFinite(m) && Number.isFinite(s)) {
             const currentSeconds = h * 3600 + m * 60 + s;
@@ -218,6 +243,16 @@ export default function App() {
         // No duration -> indeterminate (handled in render: bar pulses when running && progress===0)
       } else {
         setProgress(data);
+        // H4: mirror progress onto current batch item (per-item progress)
+        if (data.requestId && typeof data.percent === 'number') {
+          const rid = data.requestId;
+          const itemId = requestIdToItemIdRef.current?.get(rid);
+          if (itemId) {
+            setQueue(prev => prev.map(q => q.id === itemId && q.status === 'downloading'
+              ? { ...q, progress: data.percent, size: data.size ?? q.size, speed: data.speed ?? q.speed, eta: data.eta ?? q.eta }
+              : q));
+          }
+        }
       }
     });
 
@@ -227,6 +262,7 @@ export default function App() {
         window.electronAPI.removeDownloadProgressListener();
       }
       activeRequestIdRef.current = null;
+      requestIdToItemIdRef.current?.clear?.();
     };
   }, []);
 
@@ -338,7 +374,7 @@ export default function App() {
       setOutput(result.output || (result.success ? t.outputSuccess : t.outputError));
       if (result.success) {
         setProgress({ percent: 100, size: null, speed: null, eta: null });
-        if (command?.outputDir) setLastOutputDir(command.outputDir);
+        setLastOutputDir(result?.resolvedOutputDir || command?.outputDir || '');
       }
     }
 
@@ -353,7 +389,7 @@ export default function App() {
     }
   }, []);
 
-  // Batch download functions
+  // Batch download functions (H4: persistent + per-item progress)
   const addToQueue = useCallback(() => {
     if (!batchUrls.trim()) return;
 
@@ -370,15 +406,7 @@ export default function App() {
       }
       if (existingUrls.has(urlString)) return;
       existingUrls.add(urlString);
-      let id;
-      try { id = crypto.randomUUID(); } catch { id = `${Date.now()}-${Math.random().toString(16).slice(2)}`; }
-      validItems.push({
-        id,
-        url: urlString,
-        status: 'pending',
-        progress: 0,
-        output: '',
-      });
+      validItems.push(createQueueItem(urlString));
     });
 
     if (invalidUrls.length > 0) {
@@ -393,11 +421,21 @@ export default function App() {
   }, [batchUrls, queue, language, t]);
 
   const removeFromQueue = useCallback((id) => {
+    // Never remove the actively downloading item (cancel first)
+    if (currentDownload && id === currentDownload) return;
     setQueue(prev => prev.filter(item => item.id !== id));
-  }, []);
+  }, [currentDownload]);
 
   const retryFailed = useCallback(() => {
-    setQueue(prev => prev.map(q => q.status === 'error' ? { ...q, status: 'pending', output: '' } : q));
+    setQueue(prev => prev.map(q => q.status === 'error'
+      ? { ...q, status: 'pending', output: '', errorTitle: null, progress: 0, size: null, speed: null, eta: null }
+      : q));
+  }, []);
+
+  const retrySingleItem = useCallback((id) => {
+    setQueue(prev => prev.map(q => q.id === id && q.status === 'error'
+      ? { ...q, status: 'pending', output: '', errorTitle: null, progress: 0, size: null, speed: null, eta: null }
+      : q));
   }, []);
 
   const startBatchDownload = useCallback(async () => {
@@ -407,22 +445,25 @@ export default function App() {
     batchCancelRequestedRef.current = false;
     setRunning(true);
 
-    // Snapshot pending at start to avoid stale-closure misses; re-check cancel between items
+    // Snapshot pending at start to avoid stale-closure misses; re-check cancel between items.
+    // Items added mid-run stay pending for the next Start (they persist via localStorage).
     const pending = queue.filter(q => q.status === 'pending');
     for (const item of pending) {
       if (batchCancelRequestedRef.current) break;
 
       const requestId = makeRequestId();
       activeRequestIdRef.current = requestId;
+      requestIdToItemIdRef.current.set(requestId, item.id);
       setCurrentDownload(item.id);
       setQueue(prev => prev.map(q =>
-        q.id === item.id ? { ...q, status: 'downloading' } : q
+        q.id === item.id ? { ...q, status: 'downloading', progress: 0, size: null, speed: null, eta: null, errorTitle: null } : q
       ));
       setProgress({ percent: 0, size: null, speed: null, eta: null });
 
       const itemState = { ...state, url: item.url };
       const cmd = buildCommand(itemState);
       if (!cmd) {
+        requestIdToItemIdRef.current.delete(requestId);
         setQueue(prev => prev.map(q =>
           q.id === item.id ? { ...q, status: 'error', output: t.outputError } : q
         ));
@@ -435,28 +476,43 @@ export default function App() {
       } catch (e) {
         result = { success: false, output: String(e?.message || e) };
       }
+      requestIdToItemIdRef.current.delete(requestId);
 
       if (result?.cancelled || batchCancelRequestedRef.current) {
         setQueue(prev => prev.map(q =>
-          q.id === item.id && q.status === 'downloading' ? { ...q, status: 'pending' } : q
+          q.id === item.id && q.status === 'downloading' ? { ...q, status: 'pending', progress: 0 } : q
         ));
         break;
       }
 
-      setQueue(prev => prev.map(q =>
-        q.id === item.id ? {
-          ...q,
-          status: result.success ? 'completed' : 'error',
-          output: result.output || (result.success ? t.outputSuccess : t.outputError)
-        } : q
-      ));
-      if (result.success && cmd?.outputDir) setLastOutputDir(cmd.outputDir);
+      if (result.success) {
+        setQueue(prev => prev.map(q =>
+          q.id === item.id ? { ...q, status: 'completed', progress: 100, output: '' } : q
+        ));
+      } else {
+        const rawOut = result.output || t.outputError;
+        let errorTitle = null;
+        try {
+          const parsed = parseError(rawOut, language);
+          if (parsed?.found) errorTitle = parsed.title;
+        } catch {}
+        setQueue(prev => prev.map(q =>
+          q.id === item.id ? {
+            ...q,
+            status: 'error',
+            output: truncateQueueOutput(rawOut, QUEUE_OUTPUT_MAX),
+            errorTitle,
+          } : q
+        ));
+      }
+      if (result.success) setLastOutputDir(result?.resolvedOutputDir || cmd?.outputDir || '');
     }
 
     activeRequestIdRef.current = null;
+    requestIdToItemIdRef.current.clear();
     setRunning(false);
     setCurrentDownload(null);
-  }, [queue, running, state, t, makeRequestId]);
+  }, [queue, running, state, t, language, makeRequestId]);
 
   const clearCompleted = useCallback(() => {
     setQueue(prev => prev.filter(item => item.status !== 'completed' && item.status !== 'error'));
@@ -683,11 +739,12 @@ export default function App() {
       setConverterOutput(`⏹ ${language === "uk" ? "Конвертацію скасовано." : "Conversion cancelled."}`);
       setConverterProgress(0);
     } else if (result.success) {
-      const sep = outPath.includes('\\') ? '\\' : '/';
-      setConverterOutput(`✓ ${language === "uk" ? "Конвертація завершена!" : "Conversion completed!"}\n${language === "uk" ? "Збережено:" : "Saved:"} ${outPath}${sep}${outputFileName}`);
+      const savedFile = result?.resolvedOutputFile || `${outPath}${outPath.includes('\\') ? '\\' : '/'}${outputFileName}`;
+      const savedDir = result?.resolvedOutputDir || outPath;
+      setConverterOutput(`✓ ${language === "uk" ? "Конвертація завершена!" : "Conversion completed!"}\n${language === "uk" ? "Збережено:" : "Saved:"} ${savedFile}`);
       setConverterProgress(100);
-      setLastOutputDir(outPath);
-      setLastConvertedFile(`${outPath}${sep}${outputFileName}`);
+      setLastOutputDir(savedDir);
+      setLastConvertedFile(savedFile);
     } else {
       setConverterOutput(`❌ ${result.output || (language === "uk" ? "Помилка конвертації" : "Conversion failed")}`);
     }
@@ -1158,6 +1215,7 @@ export default function App() {
                     currentDownload={currentDownload}
                     language={language}
                     onRemove={removeFromQueue}
+                    onRetry={retrySingleItem}
                   />
                 </div>
               ))}

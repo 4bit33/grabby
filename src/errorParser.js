@@ -59,6 +59,42 @@ export const errorPatterns = {
       title: "Private video",
       message: "This video is private and cannot be downloaded.",
       solution: "Request access from the video owner"
+    },
+    {
+      pattern: /Sign in to confirm|confirm you.*not a bot|not a bot|log in to confirm|use --cookies/i,
+      title: "YouTube bot check",
+      message: "YouTube asks to confirm you are not a bot. Anonymous download is blocked.",
+      solution: "Update yt-dlp, try again later, or export browser cookies (--cookies-from-browser)"
+    },
+    {
+      pattern: /Requested format.*not available|No video formats found|format is not available/i,
+      title: "Format unavailable",
+      message: "The selected quality/format is not available for this video.",
+      solution: "Choose Best quality or another format (e.g. mp4)"
+    },
+    {
+      pattern: /ffmpeg.*(not found|not installed|missing)|postprocessing.*ffmpeg|ffprobe.*not found/i,
+      title: "ffmpeg missing",
+      message: "ffmpeg is required to merge/convert but was not found.",
+      solution: "Reinstall the app (bundled ffmpeg) or install ffmpeg and restart"
+    },
+    {
+      pattern: /No space left|disk.*full|not enough.*space|write error.*space/i,
+      title: "Disk full",
+      message: "Not enough free space on the output drive.",
+      solution: "Free up space or choose another save folder"
+    },
+    {
+      pattern: /timed out|connection (reset|refused|aborted)|Temporary failure in name resolution|Network is unreachable|got timeout/i,
+      title: "Network timeout",
+      message: "The connection dropped or timed out.",
+      solution: "Check your internet/VPN and retry"
+    },
+    {
+      pattern: /playlist.*(private|requires|login|sign in)|This playlist (is private|does not exist)|login required/i,
+      title: "Playlist unavailable",
+      message: "This playlist is private, deleted, or requires login.",
+      solution: "Check the URL or use a public playlist"
     }
   ],
   uk: [
@@ -121,6 +157,42 @@ export const errorPatterns = {
       title: "Приватне відео",
       message: "Це відео приватне і не може бути завантажене.",
       solution: "Запросіть доступ у власника відео"
+    },
+    {
+      pattern: /Sign in to confirm|confirm you.*not a bot|not a bot|log in to confirm|use --cookies/i,
+      title: "Перевірка YouTube на бота",
+      message: "YouTube просить підтвердити, що ви не бот. Анонімне завантаження заблоковано.",
+      solution: "Оновіть yt-dlp, спробуйте пізніше або передайте cookies браузера (--cookies-from-browser)"
+    },
+    {
+      pattern: /Requested format.*not available|No video formats found|format is not available/i,
+      title: "Формат недоступний",
+      message: "Обрана якість/формат недоступні для цього відео.",
+      solution: "Оберіть Найкращу якість або інший формат (напр. mp4)"
+    },
+    {
+      pattern: /ffmpeg.*(not found|not installed|missing)|postprocessing.*ffmpeg|ffprobe.*not found/i,
+      title: "ffmpeg не знайдено",
+      message: "Для склеювання/конвертації потрібен ffmpeg, але його не знайдено.",
+      solution: "Перевстановіть програму (вбудований ffmpeg) або встановіть ffmpeg і перезапустіть"
+    },
+    {
+      pattern: /No space left|disk.*full|not enough.*space|write error.*space/i,
+      title: "Немає місця на диску",
+      message: "На диску збереження недостатньо вільного місця.",
+      solution: "Звільніть місце або оберіть іншу папку збереження"
+    },
+    {
+      pattern: /timed out|connection (reset|refused|aborted)|Temporary failure in name resolution|Network is unreachable|got timeout/i,
+      title: "Таймаут мережі",
+      message: "З'єднання розірвано або вичерпано час очікування.",
+      solution: "Перевірте інтернет/VPN і спробуйте ще раз"
+    },
+    {
+      pattern: /playlist.*(private|requires|login|sign in)|This playlist (is private|does not exist)|login required/i,
+      title: "Плейлист недоступний",
+      message: "Цей плейлист приватний, видалений або потребує входу.",
+      solution: "Перевірте URL або використайте публічний плейлист"
     }
   ]
 };

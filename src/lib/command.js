@@ -63,6 +63,14 @@ export function buildYtDlpCommand(state) {
     args.push('-x');
     args.push('--audio-format', audioFormat);
     if (audioQuality !== 'best') args.push('--audio-quality', `${audioQuality}k`);
+    // Song metadata: title/artist + cover. --embed-metadata writes what the
+    // extractor provides; thumbnail becomes the cover art.
+    args.push('--embed-metadata');
+    // Auto-cover for audio formats that support it (wav cannot embed pictures).
+    // Explicit toggle still works for the rest (see below).
+    if (['mp3', 'm4a', 'opus', 'flac'].includes(audioFormat)) {
+      args.push('--embed-thumbnail', '--convert-thumbnails', 'jpg');
+    }
   } else if (mode === 'video_only') {
     const f =
       videoQuality === 'best'
@@ -80,7 +88,8 @@ export function buildYtDlpCommand(state) {
   }
 
   if (subtitles) args.push('--write-subs', '--sub-langs', 'uk,en');
-  if (thumbnail) args.push('--embed-thumbnail');
+  if (mode !== 'audio_only') args.push('--embed-metadata');
+  if (thumbnail && !args.includes('--embed-thumbnail')) args.push('--embed-thumbnail');
   const pl = (playlistItems || '').trim();
   if (pl) args.push('--playlist-items', pl);
 

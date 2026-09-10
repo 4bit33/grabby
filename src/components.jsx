@@ -71,7 +71,7 @@ export const ToggleSwitch = memo(({ value, onChange }) => (
   />
 ));
 
-export const QueueItem = memo(({ item, currentDownload, language, onRemove }) => (
+export const QueueItem = memo(({ item, currentDownload, language, onRemove, onRetry }) => (
   <div
     style={{
       padding: "12px 16px",
@@ -92,9 +92,22 @@ export const QueueItem = memo(({ item, currentDownload, language, onRemove }) =>
       <div style={{ fontSize: 12, color: "#aaa", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {item.url}
       </div>
-      {item.status === 'error' && item.output && (
-        <div style={{ fontSize: 10, color: "#FF8888", marginTop: 4 }}>
-          {item.output.substring(0, 100)}...
+      {item.status === 'downloading' && typeof item.progress === 'number' && (
+        <div style={{ marginTop: 6 }}>
+          <div style={{ width: "100%", height: 4, background: "#1E1E28", borderRadius: 2, overflow: "hidden" }}>
+            <div style={{ width: `${Math.min(100, Math.max(0, item.progress))}%`, height: "100%", background: "linear-gradient(90deg, #5B5BFF, #7AFF91)", transition: "width 0.3s" }} />
+          </div>
+          <div style={{ fontSize: 10, color: "#666", marginTop: 4 }}>
+            {item.progress.toFixed(1)}%
+            {item.speed ? ` • ${item.speed}` : ''}
+            {item.eta ? ` • ETA ${item.eta}` : ''}
+            {item.size ? ` • ${item.size}` : ''}
+          </div>
+        </div>
+      )}
+      {item.status === 'error' && (item.errorTitle || item.output) && (
+        <div style={{ fontSize: 10, color: "#FF8888", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {item.errorTitle || String(item.output).substring(0, 120)}
         </div>
       )}
     </div>
@@ -104,9 +117,10 @@ export const QueueItem = memo(({ item, currentDownload, language, onRemove }) =>
       {item.status === 'completed' && (language === "uk" ? "✓ Готово" : "✓ Done")}
       {item.status === 'error' && (language === "uk" ? "✗ Помилка" : "✗ Error")}
     </div>
-    {item.status === 'pending' && (
+    {item.status === 'error' && onRetry && (
       <button
-        onClick={() => onRemove(item.id)}
+        onClick={() => onRetry(item.id)}
+        title={language === "uk" ? "Повторити" : "Retry"}
         style={{
           background: "transparent",
           border: "1px solid #333",
@@ -117,8 +131,28 @@ export const QueueItem = memo(({ item, currentDownload, language, onRemove }) =>
           fontSize: 11,
           transition: "all 0.2s"
         }}
-        onMouseEnter={e => { e.target.style.borderColor = "#FF5555"; e.target.style.color = "#FF5555"; }}
-        onMouseLeave={e => { e.target.style.borderColor = "#333"; e.target.style.color = "#888"; }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = "#7AFF91"; e.currentTarget.style.color = "#7AFF91"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "#333"; e.currentTarget.style.color = "#888"; }}
+      >
+        ↻
+      </button>
+    )}
+    {item.status !== 'downloading' && (
+      <button
+        onClick={() => onRemove(item.id)}
+        title={language === "uk" ? "Видалити" : "Remove"}
+        style={{
+          background: "transparent",
+          border: "1px solid #333",
+          color: "#888",
+          padding: "4px 8px",
+          borderRadius: 4,
+          cursor: "pointer",
+          fontSize: 11,
+          transition: "all 0.2s"
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = "#FF5555"; e.currentTarget.style.color = "#FF5555"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "#333"; e.currentTarget.style.color = "#888"; }}
       >
         ✕
       </button>
